@@ -66,56 +66,72 @@ def format_comment(string):
 
 def first_line(string):
     return string.split('\n')[0]
+    
+def make_table(hdr, list):
+    sz = []
+    for h in hdr:
+        sz.append(len(h))
+    for l in list:
+        for idx, val in enumerate(l):
+            sz[idx] = max(sz[idx], len(val))
+    ret = ""
+    for idx, val in enumerate(hdr):
+        if idx > 0:ret += " | "
+        ret += val.ljust(sz[idx])
+    ret += "\n"
+    for idx, val in enumerate(hdr):
+        if idx > 0:ret += " | "
+        ret += ''.ljust(sz[idx], '-')
+    ret += "\n"
+    for l in list:
+        for idx, val in enumerate(l):
+            if idx > 0:ret += " | "
+            ret += val.ljust(sz[idx])
+        ret += "\n"
+    return ret
+
+def format_const_list(fd, path):
+    global comments
+    list = []
+    for idx, value in enumerate(fd):
+        spath = '4,0,' + path + ',2,%d'%idx
+        comment = first_line(format_comment(comments[spath])) if spath in comments else ''
+        list.append([value.name, '%d'%value.number, comment])
+    return make_table(['Possible values', 'Value', 'Description'], list)
+
+def format_field_descriptor(fd, path):
+    global comments
+    if not fd:
+        return ''
+    list = []
+    for idx, value in enumerate(fd):
+        spath = path + ',2,%d'%idx
+        type = value.type_name.split(".")[-1] if value.type_name else FIELD_TYPE_MAP[value.type]
+        comment = first_line(format_comment(comments[spath])) if spath in comments else ''
+        list.append([FIELD_LABEL_MAP[value.label], type, value.name, comment])
+    return make_table(['Modifier', 'Type', 'Key', 'Description'], list)
 
 HEADER_TPL = """{% macro gen_message(desc, level, path, trail) -%}
-{% set trail = trail + '.' + desc.name %}
+{% set trail = trail + '.' + desc.name -%}
 <a name=".{{trail}}"/>
-{% if level < 3 %}
-# {{trail|remove_prefix}}
-{% elif level > 3 %}
-### {{trail|remove_prefix}}
-{% else %}
-## {{trail|remove_prefix}}
+{{ '#'*level }} {{trail|remove_prefix}}
+
+`{{trail}}` {% if COMMENTS[path] -%}{{COMMENTS[path]|format_comment}}
 {% endif %}
-
-Full name: `{{trail}}`
-
-{% if COMMENTS[path] -%}{{COMMENTS[path]|format_comment}}{% endif %}
-
-{% for field_descriptor in desc.enum_type -%}
-{% set spath = path + ',4,%d'%loop.index0 %}
+{% for field_descriptor in desc.enum_type -%}{% set spath = path + ',4,%d'%loop.index0 -%}
 ### {{field_descriptor.name}}
 
 {% if COMMENTS[spath] -%}{{COMMENTS[spath]|format_comment}}
 {% endif %}
-| Possible values           | Value | Description  | 
-| ------------------------- | ----- | ------------ |
-{% for value in field_descriptor.value -%}
-{% set spath = '4,0,' + path + ',2,%d'%loop.index0 -%}
-| {{value.name|md_pad(25)}} | {{value.number|md_pad(4)}} | {% if COMMENTS[spath] -%}{{COMMENTS[spath]|format_comment|first_line}} {% endif %} |
-{% endfor %}
+{{field_descriptor.value|format_const_list(path)}}
 
-{% endfor %}
-{% if desc.field %}
-| Modifier | Type | Key    | Description                |
-| -------- | -----| ------ | -------------------- |
-{% for field_descriptor in desc.field -%}
-{% set spath = path + ',2,%d'%loop.index0 -%}
-| {{FIELD_LABEL_MAP[field_descriptor.label]|md_pad(20)}} | {% if field_descriptor.type_name -%}
-[{{field_descriptor.type_name.split(".")[-1]}}](#{{field_descriptor.type_name}})
-{%- else -%}
-{{FIELD_TYPE_MAP[field_descriptor.type]}}
-{%- endif %} | {{field_descriptor.name}} | {% if COMMENTS[spath] -%}{{COMMENTS[spath]|format_comment|first_line}} {% endif %} |
-{% endfor %}
-{% endif %}
-
-{% for sdesc in desc.nested_type -%}
-{{ gen_message(sdesc, level+1, "%s,3,%d"%(path, loop.index0), trail) }}
-{% endfor %}
+{% endfor -%}
+{{desc.field|format_field_descriptor(path)}}
+{% for sdesc in desc.nested_type -%}{{ gen_message(sdesc, level+1, "%s,3,%d"%(path, loop.index0), trail) }}{% endfor %}
 {%- endmacro %}
 
 {% for sdesc in desc.message_type %}
-{{ gen_message(sdesc, 2, "4,%d"%loop.index0, desc.package) }}
+{{ gen_message(sdesc, 1, "4,%d"%loop.index0, desc.package) }}
 {% endfor %}
 """
 
@@ -127,17 +143,18 @@ def make_paths(source_code):
     return locations
 
 def document_file(file_descriptor):
+    global comments
     env = Environment()
     env.filters['remove_prefix'] = remove_prefix
     env.filters['md_pad'] = md_pad
     env.filters['format_comment'] = format_comment
     env.filters['first_line'] = first_line
+    env.filters['format_const_list'] = format_const_list
+    env.filters['format_field_descriptor'] = format_field_descriptor
     
     comments = make_paths(file_descriptor.source_code_info)
     template = env.from_string(HEADER_TPL)
     data ={
         'desc':file_descriptor, 
         'COMMENTS':comments, 
-        'FIELD_TYPE_MAP':FIELD_TYPE_MAP, 
-        'FIELD_LABEL_MAP':FIELD_LABEL_MAP}
     return template.render(data)
