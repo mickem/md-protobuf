@@ -116,8 +116,8 @@ HEADER_TPL = """{% macro gen_message(desc, level, path, trail) -%}
 <a name=".{{trail}}"/>
 {{ '#'*level }} {{trail|remove_prefix}}
 
-`{{trail}}` {% if COMMENTS[path] -%}{{COMMENTS[path]|format_comment}}
-{% endif %}
+`{{trail}}` {% if COMMENTS[path] -%}{{COMMENTS[path]|format_comment}}{% endif %}
+
 {% for field_descriptor in desc.enum_type -%}{% set spath = path + ',4,%d'%loop.index0 -%}
 ### {{field_descriptor.name}}
 
