@@ -129,9 +129,10 @@ HEADER_TPL = """{% macro gen_message(desc, level, path, trail) -%}
 {{desc.field|format_field_descriptor(path)}}
 {% for sdesc in desc.nested_type -%}{{ gen_message(sdesc, level+1, "%s,3,%d"%(path, loop.index0), trail) }}{% endfor %}
 {%- endmacro %}
+# API Reference
 
 {% for sdesc in desc.message_type %}
-{{ gen_message(sdesc, 1, "4,%d"%loop.index0, desc.package) }}
+{{ gen_message(sdesc, 2, "4,%d"%loop.index0, desc.package) }}
 {% endfor %}
 """
 
@@ -156,5 +157,5 @@ def document_file(file_descriptor):
     template = env.from_string(HEADER_TPL)
     data ={
         'desc':file_descriptor, 
-        'COMMENTS':comments, 
+        'COMMENTS':comments}
     return template.render(data)
