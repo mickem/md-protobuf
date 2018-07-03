@@ -113,7 +113,7 @@ def format_field_descriptor(fd, path):
 
 HEADER_TPL = """{% macro gen_message(desc, level, path, trail) -%}
 {% set trail = trail + '.' + desc.name -%}
-<a name=".{{trail}}"/>
+<a name=".{{trail}}"></a>
 {{ '#'*level }} {{trail|remove_prefix}}
 
 `{{trail}}` {% if COMMENTS[path] -%}{{COMMENTS[path]|format_comment}}{% endif %}
