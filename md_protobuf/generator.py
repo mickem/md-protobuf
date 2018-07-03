@@ -62,7 +62,7 @@ def md_pad(string, count):
     return s.ljust(count)
 
 def format_comment(string):
-    return '\n'.join(map(lambda x:x.strip(), string.split('\n')))
+    return '\n'.join(map(lambda x:x.strip().lstrip('*'), string.split('\n')))
 
 def first_line(string):
     return string.split('\n')[0]
