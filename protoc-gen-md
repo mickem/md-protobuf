@@ -37,6 +37,7 @@ response = CodeGeneratorResponse()
 ltag = ''
 
 # each input file to the compiler
+md_files = dict()
 for i in range(0, len(request.proto_file)):
     file_descriptor = request.proto_file[i]
     filename = file_descriptor.name
@@ -55,9 +56,18 @@ for i in range(0, len(request.proto_file)):
     cpp_header = '%s.pb.h' % package.replace('.', '/')
     cpp_namespace = '::%s' % package.replace('.', '::')
 
+    file_path = '%s.md' % package.replace('.', '/').lower()
+    content = document_file(file_descriptor, title=filename)
+    if file_path in md_files:
+        md_files[file_path] += "\n"
+        md_files[file_path] += content
+    else:
+        md_files[file_path] = content
+
+for file_path in md_files:
     f = response.file.add()
-    f.name = '%s.md' % package.replace('.', '/').lower()
-    f.content = document_file(file_descriptor)
+    f.name = file_path
+    f.content = md_files[file_path]
 
 stdout.write(response.SerializeToString())
 exit(0)
