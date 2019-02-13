@@ -129,7 +129,7 @@ HEADER_TPL = """{% macro gen_message(desc, level, path, trail) -%}
 {{desc.field|format_field_descriptor(path)}}
 {% for sdesc in desc.nested_type -%}{{ gen_message(sdesc, level+1, "%s,3,%d"%(path, loop.index0), trail) }}{% endfor %}
 {%- endmacro %}
-# API Reference
+# {% if title -%}{{title}}{% else %}API Reference{% endif %}
 
 {% for sdesc in desc.message_type %}
 {{ gen_message(sdesc, 2, "4,%d"%loop.index0, desc.package) }}
@@ -143,7 +143,7 @@ def make_paths(source_code):
             locations[','.join(map(lambda x:'%s'%x, l.path))] = l.leading_comments.strip()
     return locations
 
-def document_file(file_descriptor):
+def document_file(file_descriptor, title=None):
     global comments
     env = Environment()
     env.filters['remove_prefix'] = remove_prefix
@@ -157,5 +157,6 @@ def document_file(file_descriptor):
     template = env.from_string(HEADER_TPL)
     data ={
         'desc':file_descriptor, 
-        'COMMENTS':comments}
+        'COMMENTS':comments,
+        'title':title}
     return template.render(data)
