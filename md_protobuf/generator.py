@@ -65,7 +65,23 @@ def format_comment(string):
     return '\n'.join(map(lambda x:x.strip().lstrip('*'), string.split('\n')))
 
 def first_sentence(string):
-    return string.split('.')[0].strip().replace('\n', ' ') + '.'
+    lines = string.split('\n')
+    sentence = list()
+    for line in lines:
+        if re.match(r'^\s*$', line):
+            if len(sentence) > 0:
+                break
+            else:
+                continue
+        if re.match(r'^\s*@', line):
+            break
+        dot = line.find('.')
+        if dot >= 0:
+            sentence.append(line[0:dot + 1])
+            break
+        else:
+            sentence.append(line)
+    return ' '.join(sentence)
 
 def first_line(string):
     return string.split('\n')[0]
