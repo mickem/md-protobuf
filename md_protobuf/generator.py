@@ -94,7 +94,7 @@ def format_const_list(fd, path):
     global comments
     list = []
     for idx, value in enumerate(fd):
-        spath = '4,0,' + path + ',2,%d'%idx
+        spath = path + ',2,%d'%idx
         comment = first_line(format_comment(comments[spath])) if spath in comments else ''
         list.append([value.name, '%d'%value.number, comment])
     return make_table(['Possible values', 'Value', 'Description'], list)
